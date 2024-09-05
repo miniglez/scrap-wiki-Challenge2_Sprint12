@@ -41,8 +41,33 @@ const setData = (myData) => {
         </body>
         </html>
     `
-    console.log(template)
     return template
+}
+
+const getAllData = async (link) => {
+        const response = await axios.get("https://es.wikipedia.org"+link)
+            
+        const html = response.data
+        const $ = cheerio.load(html)
+
+        const imgs = []
+        const ps = []
+        $("img").each((index, element) => {
+            const img = $(element).attr("src")
+            imgs.push(img)
+        })
+
+        $("p").each((index, element) => {
+            const p = $(element).text()
+            ps.push(p)
+        })
+
+        return {
+            h1: $("h1").text(),
+            img: imgs,
+            p: ps
+        }
+            
 }
 
 app.get("/", async (req, res) => {
@@ -57,36 +82,13 @@ app.get("/", async (req, res) => {
                 links.push(link)
             })
 
-            const allData = links.map(async (ele) => {
-                try{
-                    const response2 = await axios.get("https://es.wikipedia.org"+ele)
-                    if(response2.status === 200){
-                        const html2 = response.data
-                        const $2 = cheerio.load(html2)
+            const allData = []
 
-                        const imgs = []
-                        const ps = []
-                        $2("img").each((index, element) => {
-                            const img = $2(element).attr("src")
-                            imgs.push(img)
-                        })
-
-                        $2("p").each((index, element) => {
-                            const p = $2(element).text()
-                            ps.push(p)
-                        })
-
-                        return {
-                            h1: $2("h1").text(),
-                            img: imgs,
-                            p: ps
-                        }
-                    }
-                }
-                catch(error){
-                    console.log(`Dio error el elemento ${ele}`)
-                }
-            })
+            for(let link of links){
+                const data = getAllData(link)
+                allData.push(data)
+            }
+            
             const myData = await Promise.all(allData)
             const template = setData(myData)
             res.send(template)
